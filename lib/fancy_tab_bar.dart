@@ -3,6 +3,17 @@ import 'tab_item.dart';
 import 'package:vector_math/vector_math.dart' as vector;
 
 class FancyTabBar extends StatefulWidget {
+  final Color buttonColor;
+  final int defaultItem;
+  final List<SimpleTabItem> children;
+
+  const FancyTabBar(
+      {Key key,
+      this.buttonColor = Colors.blueAccent,
+      this.defaultItem = 0,
+      @required this.children,})
+      : super(key: key);
+
   @override
   _FancyTabBarState createState() => _FancyTabBarState();
 }
@@ -18,21 +29,27 @@ class _FancyTabBarState extends State<FancyTabBar>
   Animation<double> _fadeFabInAnimation;
 
   double fabIconAlpha = 1;
-  IconData nextIcon = Icons.search;
-  IconData activeIcon = Icons.search;
+  IconData nextIcon;
+  IconData activeIcon;
 
-  int currentSelected = 1;
+  int currentSelected;
 
   @override
   void initState() {
     super.initState();
+    currentSelected = widget.defaultItem;
+    activeIcon = nextIcon = widget.children[widget.defaultItem].iconData;
 
     _animationController = AnimationController(
         vsync: this, duration: Duration(milliseconds: ANIM_DURATION));
     _fadeOutController = AnimationController(
         vsync: this, duration: Duration(milliseconds: (ANIM_DURATION ~/ 5)));
 
-    _positionTween = Tween<double>(begin: 0, end: 0);
+    // Animate from the middle of the screen to the default selected item
+    //double spacing = 2 / (widget.children.length -1);
+    //_positionTween = Tween<double>(begin: 0, end: -1 + (currentSelected * spacing));
+    
+    _positionTween = Tween<double>(begin: 0, end: -0);
     _positionAnimation = _positionTween.animate(
         CurvedAnimation(parent: _animationController, curve: Curves.easeOut))
       ..addListener(() {
@@ -65,6 +82,36 @@ class _FancyTabBarState extends State<FancyTabBar>
       });
   }
 
+  List<Widget> _makeItems(){
+    List<Widget> items = [];  
+    // 2 is the distance between -1 (far left item) and 1 (far right item)
+    // we need to split this space into equal "spaces" between our items
+    double spacing = 2 / (widget.children.length -1);
+
+    widget.children.forEach( (item) {
+      int itemIndex =  widget.children.indexOf(item);
+
+      items.add( 
+        TabItem(
+          selected: currentSelected == itemIndex,
+          iconData: item.iconData,
+          iconColor: item.iconColor,
+          textColor: item.textColor,                
+          title: item.title,
+          callbackFunction: () {
+            setState(() {
+              nextIcon = item.iconData;
+              currentSelected = itemIndex;
+            });
+            _initAnimationAndStart(_positionAnimation.value, (-1 + (itemIndex * spacing) ));
+          }
+        )
+      );
+    });
+  
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -73,48 +120,20 @@ class _FancyTabBarState extends State<FancyTabBar>
         Container(
           height: 65,
           margin: EdgeInsets.only(top: 45),
-          decoration: BoxDecoration(color: Colors.white, boxShadow: [
-            BoxShadow(
-                color: Colors.black12, offset: Offset(0, -1), blurRadius: 8)
-          ]),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                offset: Offset(0, -1),
+                blurRadius: 8,
+              )
+            ],
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              TabItem(
-                  selected: currentSelected == 0,
-                  iconData: Icons.home,
-                  title: "HOME",
-                  callbackFunction: () {
-                    setState(() {
-                      nextIcon = Icons.home;
-                      currentSelected = 0;
-                    });
-                    _initAnimationAndStart(_positionAnimation.value, -1);
-                  }),
-              TabItem(
-                  selected: currentSelected == 1,
-                  iconData: Icons.search,
-                  title: "SEARCH",
-                  callbackFunction: () {
-                    setState(() {
-                      nextIcon = Icons.search;
-                      currentSelected = 1;
-                    });
-                    _initAnimationAndStart(_positionAnimation.value, 0);
-                  }),
-              TabItem(
-                  selected: currentSelected == 2,
-                  iconData: Icons.person,
-                  title: "USER",
-                  callbackFunction: () {
-                    setState(() {
-                      nextIcon = Icons.person;
-                      currentSelected = 2;
-                    });
-                    _initAnimationAndStart(_positionAnimation.value, 1);
-                  })
-            ],
+            children: _makeItems(),
           ),
         ),
         IgnorePointer(
@@ -122,9 +141,9 @@ class _FancyTabBarState extends State<FancyTabBar>
             decoration: BoxDecoration(color: Colors.transparent),
             child: Align(
               heightFactor: 1,
-              alignment: Alignment(_positionAnimation.value, 0),
+              alignment: Alignment(_positionAnimation.value, 0), // need this to begin at the right position, but how??
               child: FractionallySizedBox(
-                widthFactor: 1 / 3,
+                widthFactor: 1 / widget.children.length,
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
@@ -132,37 +151,44 @@ class _FancyTabBarState extends State<FancyTabBar>
                       height: 90,
                       width: 90,
                       child: ClipRect(
-                          clipper: HalfClipper(),
-                          child: Container(
-                            child: Center(
-                              child: Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)])
+                        clipper: HalfClipper(),
+                        child: Container(
+                          child: Center(
+                            child: Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12, blurRadius: 8),
+                                ],
                               ),
                             ),
-                          )),
+                          ),
+                        ),
+                      ),
                     ),
                     SizedBox(
-                        height: 70,
-                        width: 90,
-                        child: CustomPaint(
-                          painter: HalfPainter(),
-                        )),
+                      height: 70,
+                      width: 90,
+                      child: CustomPaint(
+                        painter: HalfPainter(),
+                      ),
+                    ),
                     SizedBox(
                       height: 60,
                       width: 60,
                       child: Container(
                         decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: PURPLE,
-                            border: Border.all(
-                                color: Colors.white,
-                                width: 5,
-                                style: BorderStyle.none)),
+                          shape: BoxShape.circle,
+                          color: widget.buttonColor,
+                          border: Border.all(
+                              color: Colors.white,
+                              width: 5,
+                              style: BorderStyle.none),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(0.0),
                           child: Opacity(

@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 
+class SimpleTabItem{
+  final String title;
+  final IconData iconData;
+  final Color textColor;
+  final Color iconColor;
+  SimpleTabItem({this.title, this.iconData, this.textColor = Colors.black, this.iconColor = Colors.black});
+}
+
 class TabItem extends StatefulWidget {
   TabItem(
-      {@required this.selected,
+      {this.selected = false,
       @required this.iconData,
       @required this.title,
-      @required this.callbackFunction});
+      @required this.callbackFunction,
+      this.textColor,
+      @required this.iconColor});
 
-  String title;
-  IconData iconData;
-  bool selected;
-  Function callbackFunction;
+  final String title;
+  final IconData iconData;
+  final bool selected;
+  final Function callbackFunction;
+  final Color textColor;
+  final Color iconColor;
 
   @override
   _TabItemState createState() => _TabItemState();
@@ -23,8 +35,6 @@ const double TEXT_ON = 1;
 const double ALPHA_OFF = 0;
 const double ALPHA_ON = 1;
 const int ANIM_DURATION = 300;
-const Color PURPLE = Color(0xFF8c77ec);
-
 
 class _TabItemState extends State<TabItem> {
 
@@ -68,7 +78,7 @@ class _TabItemState extends State<TabItem> {
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
                     widget.title,
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: widget.textColor ?? widget.iconColor),
                   ),
                 )),
           ),
@@ -89,7 +99,7 @@ class _TabItemState extends State<TabItem> {
                   alignment: Alignment(0, 0),
                   icon: Icon(
                     widget.iconData,
-                    color: PURPLE,
+                    color: widget.iconColor,
                   ),
                   onPressed: () {
                     widget.callbackFunction();
